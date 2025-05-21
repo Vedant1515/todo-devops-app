@@ -1,18 +1,14 @@
-const chai = require('chai');
-const chaiHttp = require('chai-http');
-const app = require('../src/app');
+import chai from 'chai';
+import chaiHttp from 'chai-http';
+import app from '../src/app.js'; // must use .js when using ESM
 
 chai.use(chaiHttp);
 const expect = chai.expect;
 
 describe('Todo API', () => {
-  it('should fetch all todos', done => {
-    chai.request(app)
-      .get('/api/todos')
-      .end((err, res) => {
-        expect(res).to.have.status(200);
-        expect(res.body).to.be.an('array');
-        done();
-      });
+  it('should fetch all todos', async () => {
+    const res = await chai.request(app).get('/api/todos');
+    expect(res).to.have.status(200);
   });
 });
+

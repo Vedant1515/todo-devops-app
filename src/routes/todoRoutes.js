@@ -1,30 +1,47 @@
-const express = require('express');
-const Todo = require('../models/Todo');
+import express from 'express';
+import Todo from '../models/Todo.js';
+
 const router = express.Router();
 
 // Create
 router.post('/', async (req, res) => {
-  const todo = new Todo(req.body);
-  const saved = await todo.save();
-  res.status(201).json(saved);
+  try {
+    const todo = new Todo(req.body);
+    const saved = await todo.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 // Read
 router.get('/', async (req, res) => {
-  const todos = await Todo.find();
-  res.json(todos);
+  try {
+    const todos = await Todo.find();
+    res.json(todos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Update
 router.put('/:id', async (req, res) => {
-  const updated = await Todo.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(updated);
+  try {
+    const updated = await Todo.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 // Delete
 router.delete('/:id', async (req, res) => {
-  await Todo.findByIdAndDelete(req.params.id);
-  res.status(204).end();
+  try {
+    await Todo.findByIdAndDelete(req.params.id);
+    res.status(204).end();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-module.exports = router;
+export default router;
