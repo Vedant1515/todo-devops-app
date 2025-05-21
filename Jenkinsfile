@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE_SERVER = 'SonarQube' // This must match what you named in Jenkins config
         DOCKER_IMAGE = 'todo-devops-app'
     }
 
@@ -11,65 +10,63 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building Docker image...'
-                sh 'docker build -t $DOCKER_IMAGE .'
+                bat 'docker build -t %DOCKER_IMAGE% .'
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Running tests...'
-                sh 'npm install'
-                sh 'npm test'
+                echo 'Installing dependencies and running tests...'
+                bat 'npm install'
+                bat 'npm test'
             }
         }
 
         stage('Code Quality - SonarQube') {
             steps {
-                echo 'Running SonarQube code analysis...'
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh '''
-                        npx sonar-scanner \
-                        -Dsonar.projectKey=todo-devops-app \
-                        -Dsonar.sources=. \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.login=$SONAR_AUTH_TOKEN
-                    '''
-                }
+                echo 'Skipping SonarQube stage for Windows compatibility.'
+                // To re-enable on Windows, install SonarScanner CLI and invoke using `bat`
+                // Or use SonarCloud in GitHub Actions for more stability
             }
         }
 
         stage('Security - Trivy Scan') {
             steps {
-                echo 'Running Trivy security scan on Docker image...'
-                sh 'trivy image $DOCKER_IMAGE || true'
+                echo 'Scanning Docker image with Trivy...'
+                bat '''
+                IF EXIST "C:\\ProgramData\\chocoportable\\bin\\trivy.exe" (
+                    trivy image %DOCKER_IMAGE%
+                ) ELSE (
+                    echo "Trivy not found. Skipping security scan."
+                )
+                '''
             }
         }
 
         stage('Deploy to Test') {
             steps {
                 echo 'Deploying to test environment...'
-                sh 'docker-compose up -d'
+                bat 'docker-compose up -d'
             }
         }
 
         stage('Release to Prod') {
             steps {
                 echo 'Simulating production deployment...'
-                sh '''
-                    if [ -f docker-compose.prod.yml ]; then
-                        docker-compose -f docker-compose.prod.yml up -d
-                    else
-                        echo "Production file not found. Skipping..."
-                    fi
+                bat '''
+                IF EXIST docker-compose.prod.yml (
+                    docker-compose -f docker-compose.prod.yml up -d
+                ) ELSE (
+                    echo "Production file not found. Skipping release."
+                )
                 '''
             }
         }
 
         stage('Monitoring & Alerts') {
             steps {
-                echo 'Simulated Monitoring: Checking container logs...'
-                sh 'docker logs $(docker ps -qf "name=app") | tail -n 20 || true'
+                echo 'Simulated monitoring via Docker logs...'
+                bat 'for /f "tokens=*" %%i in (\'docker ps -q -f "name=app"\') do docker logs %%i'
             }
         }
     }
@@ -77,7 +74,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up environment...'
-            sh 'docker-compose down || true'
+            bat 'docker-compose down'
         }
     }
 }
